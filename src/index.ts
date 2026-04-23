@@ -1,5 +1,5 @@
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
-import { Output, generateText, stepCountIs, tool } from 'ai';
+import { Output, generateText, stepCountIs, streamText, tool } from 'ai';
 import { z } from 'zod';
 
 const INTERACTION_ID_HEADER = 'X-Interaction-Id';
@@ -44,6 +44,8 @@ export default {
 				return jsonMode(workshopLlm, payload);
 			case 'BASIC_TOOL_CALL':
 				return basicToolCall(workshopLlm, payload, interactionId);
+			case 'RESPONSE_STREAMING':
+				return responseStreaming(workshopLlm, payload);
 			default:
 				return new Response('Solver not found', { status: 404 });
 		}
@@ -122,6 +124,15 @@ async function basicToolCall(workshopLlm: WorkshopLlm, payload: any, interaction
 	return Response.json({
 		answer: result.text || 'N/A',
 	});
+}
+
+async function responseStreaming(workshopLlm: WorkshopLlm, payload: any): Promise<Response> {
+	const result = streamText({
+		model: workshopLlm.chatModel('deli-4'),
+		prompt: payload.prompt,
+	});
+
+	return result.toTextStreamResponse();
 }
 
 async function jsonMode(workshopLlm: WorkshopLlm, payload: any): Promise<Response> {
